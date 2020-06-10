@@ -5,12 +5,12 @@ exports.createPostValidator = [
     .trim()
     .isAlphanumeric()
     .isLength({
-        min: 5
+        min: 7
     }),
     body('content')
     .trim()
     .isAlphanumeric()
     .isLength({
-        min: 5
+        min: 7
     })
 ]

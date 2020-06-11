@@ -2,41 +2,61 @@ const { validationResult }  = require('express-validator');
 
 const Post = require('../models/post');
 
-exports.getPosts = (req, res, next) => {
-    res.status(200).json({
-        posts: [
-            {
-                _id: '1',
-                title: 'First Post',
-                content: 'This is the first post!',
-                imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
-                creator: {
-                    name: 'Bruno'
-                },
-                createdAt: new Date()
-            },
-            {
-                _id: '2',
-                title: 'Second Post',
-                content: 'This is the second post!',
-                imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
-                creator: {
-                    name: 'Bruno'
-                },
-                createdAt: new Date()
-            },
-            {
-                _id: '3',
-                title: 'Third Post',
-                content: 'This is the third post!',
-                imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
-                creator: {
-                    name: 'Bruno'
-                },
-                createdAt: new Date()
+exports.getFeed = (req, res, next) => {
+    Post
+        .find()
+        .then(posts => {
+            if(!posts) {
+                const error = new Error('Could not find posts.');
+                error.statusCode = 404;
+                throw error;
             }
-        ]
-    });
+
+            res.status(200).json({
+                posts
+            })
+        })
+        .catch(err => {
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
+            next(err);
+        });
+
+    // res.status(200).json({
+    //     posts: [
+    //         {
+    //             _id: '1',
+    //             title: 'First Post',
+    //             content: 'This is the first post!',
+    //             imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
+    //             creator: {
+    //                 name: 'Bruno'
+    //             },
+    //             createdAt: new Date()
+    //         },
+    //         {
+    //             _id: '2',
+    //             title: 'Second Post',
+    //             content: 'This is the second post!',
+    //             imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
+    //             creator: {
+    //                 name: 'Bruno'
+    //             },
+    //             createdAt: new Date()
+    //         },
+    //         {
+    //             _id: '3',
+    //             title: 'Third Post',
+    //             content: 'This is the third post!',
+    //             imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
+    //             creator: {
+    //                 name: 'Bruno'
+    //             },
+    //             createdAt: new Date()
+    //         }
+    //     ]
+    // });
 };
 
 exports.createPost = (req, res, next) => {
@@ -48,13 +68,19 @@ exports.createPost = (req, res, next) => {
         error.statusCode = 422;
         throw error;
     }
+    if(!req.file) {
+        const error = new Error('No image provided');
+        error.statusCode = 422;
+        throw error;
+    }
 
+    const imageUrl = req.file.path;
     const { title, content } = req.body;
 
     const post = new Post({
         title,
         content,
-        imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
+        imageUrl: imageUrl,
         creator: {
             name: 'Bruno'
         }
@@ -67,6 +93,7 @@ exports.createPost = (req, res, next) => {
                 message: 'Post created sucessfully!',
                 post: result
             });
+            console.log('New post created!')
         })
         .catch(err => {
             if (!err.statusCode) {
@@ -74,6 +101,30 @@ exports.createPost = (req, res, next) => {
             }
             next(err);
         });
-
-    
 };
+
+exports.getPost = (req, res, next) => {
+    const { postId } =  req.params;
+
+    Post
+        .findById(postId)
+        .then(post => {
+            if(!post) {
+                const error = new Error('Could not find post.');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            res.status(200).json({
+                message: 'Post fetched.',
+                post
+            });
+        })
+        .catch(err => {
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
+            next(err);
+        });
+};
+

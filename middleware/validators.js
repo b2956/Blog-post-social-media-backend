@@ -3,14 +3,14 @@ const { body } = require('express-validator');
 exports.createPostValidator = [
     body('title')
     .trim()
-    .isAlphanumeric()
+    .isString()
     .isLength({
-        min: 7
+        min: 5
     }),
     body('content')
     .trim()
-    .isAlphanumeric()
+    .isString()
     .isLength({
-        min: 7
+        min: 5
     })
 ]

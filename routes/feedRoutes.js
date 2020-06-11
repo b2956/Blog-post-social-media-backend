@@ -9,6 +9,8 @@ router.get('/posts', feedController.getFeed);
 
 router.post('/post', validators.createPostValidator ,feedController.createPost);
 
-router.get('/post/:postId', feedController.getPost)
+router.get('/post/:postId', feedController.getPost);
+
+router.put('/post/:postId', validators.createPostValidator, feedController.editPost);
 
 module.exports = router;

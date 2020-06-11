@@ -1,6 +1,7 @@
 const { validationResult }  = require('express-validator');
 
 const Post = require('../models/post');
+const clearImage = require('../utils/clearImage');
 
 exports.getFeed = (req, res, next) => {
     Post
@@ -128,3 +129,53 @@ exports.getPost = (req, res, next) => {
         });
 };
 
+exports.editPost = (req, res, next) => {
+    const errors = validationResult(req);
+    
+    if(!errors.isEmpty()) {
+        const error = new Error('Validation failed, entered data is incorrect');
+        error.statusCode = 422;
+        throw error;
+    }
+
+    const { postId } = req.params;
+    const { title, content } = req.body;
+    let imageUrl;
+
+    if(req.file) {
+        imageUrl = req.file.path;
+    }
+
+    Post
+    .findById(postId)
+    .then(post => {
+        if(!post) {
+            const error = new Error('Could not find post.');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if(imageUrl !== undefined) {
+            clearImage(post.imageUrl);
+            post.imageUrl = imageUrl;
+        }
+
+        post.title = title;
+        post.content = content;
+        
+        return post.save()
+    })
+    .then(result => {
+        res.status(200).json({
+            message: 'Post edited with succes!',
+            post: result
+        });
+        console.log('Post updated successfully!')
+    })
+    .catch(err => {
+        if (!err.statusCode) {
+            err.statusCode = 500;
+        }
+        next(err);
+    });
+}

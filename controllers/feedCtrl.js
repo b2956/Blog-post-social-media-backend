@@ -2,27 +2,37 @@ const { validationResult }  = require('express-validator');
 
 const Post = require('../models/post');
 const clearImage = require('../utils/clearImage');
+const callErrorHandler = require('../utils/callErrorHandler');
 
 exports.getFeed = (req, res, next) => {
-    Post
-        .find()
-        .then(posts => {
-            if(!posts) {
-                const error = new Error('Could not find posts.');
-                error.statusCode = 404;
-                throw error;
-            }
+    const { page } = +req.query || 1;
+    const postsPerPage = 2;
+    let totalPosts;
+    Post.find()
+    .countDocuments()
+    .then(count => {
+        totalPosts = count;
 
-            res.status(200).json({
-                posts
-            })
-        })
-        .catch(err => {
-            if (!err.statusCode) {
-                err.statusCode = 500;
-            }
-            next(err);
-        });
+        return Post
+            .find()
+            .skip((page - 1) * postsPerPage)
+            .limit(postsPerPage)
+            .then(posts => {
+                if(!posts) {
+                    const error = new Error('Could not find posts.');
+                    error.statusCode = 404;
+                    throw error;
+                }
+
+                res.status(200).json({
+                    posts,
+                    totalItems: totalPosts
+                })
+            });
+    })
+    .catch(err => {
+        callErrorHandler(err, next);
+    })
 
     // res.status(200).json({
     //     posts: [
@@ -97,10 +107,7 @@ exports.createPost = (req, res, next) => {
             console.log('New post created!')
         })
         .catch(err => {
-            if (!err.statusCode) {
-                err.statusCode = 500;
-            }
-            next(err);
+            callErrorHandler(err, next);
         });
 };
 
@@ -122,10 +129,7 @@ exports.getPost = (req, res, next) => {
             });
         })
         .catch(err => {
-            if (!err.statusCode) {
-                err.statusCode = 500;
-            }
-            next(err);
+            callErrorHandler(err, next);
         });
 };
 
@@ -173,9 +177,33 @@ exports.editPost = (req, res, next) => {
         console.log('Post updated successfully!')
     })
     .catch(err => {
-        if (!err.statusCode) {
-            err.statusCode = 500;
-        }
-        next(err);
+        callErrorHandler(err, next);
     });
-}
+};
+
+exports.deletePost = (req, res, next) => {
+    const { postId } = req.params;
+
+    Post
+    .findById(postId)
+    .then(post => {
+        if(!post) {
+            const error = new Error('Could not find post.');
+            error.statusCode = 404;
+            throw error;
+        }
+        clearImage(post.imageUrl);
+
+        return Post.findByIdAndRemove(postId);
+    })
+    .then(result => {
+        res.status(200).json({
+            message: 'Post deleted successfully!'
+        });
+        console.log('Post deleted successfully!');
+    })
+    .catch(err => {
+        callErrorHandler(err, next);
+    });
+
+};

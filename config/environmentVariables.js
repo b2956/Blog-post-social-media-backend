@@ -5,6 +5,7 @@ const dotenv = require('dotenv').config({
 });
 
 module.exports = {
-    MongoDbUri: process.env.MONGO_DB_URI
+    MongoDbUri: process.env.MONGO_DB_URI,
+    JWTSecret: process.env.JSON_WEB_TOKEN_SECRET
 }
 

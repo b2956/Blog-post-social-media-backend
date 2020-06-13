@@ -19,9 +19,7 @@ exports.getFeed = (req, res, next) => {
             .limit(postsPerPage)
             .then(posts => {
                 if(!posts) {
-                    const error = new Error('Could not find posts.');
-                    error.statusCode = 404;
-                    throw error;
+                    callErrorHandler.synchronous('Could not find posts.', 404);
                 }
 
                 res.status(200).json({
@@ -31,44 +29,9 @@ exports.getFeed = (req, res, next) => {
             });
     })
     .catch(err => {
-        callErrorHandler(err, next);
-    })
-
-    // res.status(200).json({
-    //     posts: [
-    //         {
-    //             _id: '1',
-    //             title: 'First Post',
-    //             content: 'This is the first post!',
-    //             imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
-    //             creator: {
-    //                 name: 'Bruno'
-    //             },
-    //             createdAt: new Date()
-    //         },
-    //         {
-    //             _id: '2',
-    //             title: 'Second Post',
-    //             content: 'This is the second post!',
-    //             imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
-    //             creator: {
-    //                 name: 'Bruno'
-    //             },
-    //             createdAt: new Date()
-    //         },
-    //         {
-    //             _id: '3',
-    //             title: 'Third Post',
-    //             content: 'This is the third post!',
-    //             imageUrl: 'images/wordpress-blog-post-checklist-guide.jpg',
-    //             creator: {
-    //                 name: 'Bruno'
-    //             },
-    //             createdAt: new Date()
-    //         }
-    //     ]
-    // });
-};
+        callErrorHandler.asynchronous(err, next);
+    });
+}
 
 exports.createPost = (req, res, next) => {
     const errors = validationResult(req);
@@ -80,9 +43,7 @@ exports.createPost = (req, res, next) => {
         throw error;
     }
     if(!req.file) {
-        const error = new Error('No image provided');
-        error.statusCode = 422;
-        throw error;
+        callErrorHandler.synchronous('No image provided', 422);
     }
 
     const imageUrl = req.file.path;
@@ -107,9 +68,9 @@ exports.createPost = (req, res, next) => {
             console.log('New post created!')
         })
         .catch(err => {
-            callErrorHandler(err, next);
+            callErrorHandler.asynchronous(err, next);
         });
-};
+}
 
 exports.getPost = (req, res, next) => {
     const { postId } =  req.params;
@@ -118,9 +79,7 @@ exports.getPost = (req, res, next) => {
         .findById(postId)
         .then(post => {
             if(!post) {
-                const error = new Error('Could not find post.');
-                error.statusCode = 404;
-                throw error;
+                callErrorHandler.synchronous('Could not find post.', 404);
             }
 
             res.status(200).json({
@@ -129,17 +88,15 @@ exports.getPost = (req, res, next) => {
             });
         })
         .catch(err => {
-            callErrorHandler(err, next);
+            callErrorHandler.asynchronous(err, next);
         });
-};
+}
 
 exports.editPost = (req, res, next) => {
     const errors = validationResult(req);
     
     if(!errors.isEmpty()) {
-        const error = new Error('Validation failed, entered data is incorrect');
-        error.statusCode = 422;
-        throw error;
+        callErrorHandler.synchronous('Validation failed, entered data is incorrect', 422);
     }
 
     const { postId } = req.params;
@@ -154,9 +111,7 @@ exports.editPost = (req, res, next) => {
     .findById(postId)
     .then(post => {
         if(!post) {
-            const error = new Error('Could not find post.');
-            error.statusCode = 404;
-            throw error;
+            callErrorHandler.synchronous('Could not find post.', 404);
         }
 
         if(imageUrl !== undefined) {
@@ -177,9 +132,9 @@ exports.editPost = (req, res, next) => {
         console.log('Post updated successfully!')
     })
     .catch(err => {
-        callErrorHandler(err, next);
+        callErrorHandler.asynchronous(err, next);
     });
-};
+}
 
 exports.deletePost = (req, res, next) => {
     const { postId } = req.params;
@@ -188,9 +143,7 @@ exports.deletePost = (req, res, next) => {
     .findById(postId)
     .then(post => {
         if(!post) {
-            const error = new Error('Could not find post.');
-            error.statusCode = 404;
-            throw error;
+            callErrorHandler.synchronous('Could not find post.', 404);
         }
         clearImage(post.imageUrl);
 
@@ -203,7 +156,7 @@ exports.deletePost = (req, res, next) => {
         console.log('Post deleted successfully!');
     })
     .catch(err => {
-        callErrorHandler(err, next);
+        callErrorHandler.asynchronous(err, next);
     });
 
-};
+}

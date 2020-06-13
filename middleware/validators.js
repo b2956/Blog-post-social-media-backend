@@ -45,3 +45,9 @@ exports.sigUpValidator = [
     })
     .withMessage('Password must be at least 5 characters long')
 ]
+
+exports.loginValidator = [
+    body('email')
+    .trim()
+    .normalizeEmail()
+]

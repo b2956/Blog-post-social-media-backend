@@ -7,6 +7,7 @@ const multer = require('multer');
 const envVariables = require('./config/environmentVariables');
 
 const feedRoutes = require('./routes/feedRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -43,15 +44,18 @@ app.use((req, res, next) => {
 });
 
 app.use('/feed', feedRoutes);
+app.use('/auth', authRoutes);
 
 app.use((error, req, res, next) => {
     console.log(error);
 
     const status = error.statusCode || 500;
     const message = error.message;
+    const data = error.data;
 
     res.status(status).json({
-        message: message
+        message: message,
+        data: data
     });
 });
 

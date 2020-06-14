@@ -16,4 +16,8 @@ router.put('/post/:postId',  isAuth, validators.createPostValidator, feedControl
 
 router.delete('/post/:postId',  isAuth,feedController.deletePost);
 
+router.get('/status', isAuth, feedController.getUserStatus);
+
+router.put('/status', isAuth, feedController.editStatus);
+
 module.exports = router;

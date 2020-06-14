@@ -21,7 +21,6 @@ module.exports = (req, res, next) => {
     }
 
     if(!decodedToken) {
-        console.log(hello);
         callErrorHandler.synchronous('User is not authenticaded', 401);
     }
 

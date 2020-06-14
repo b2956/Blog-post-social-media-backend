@@ -8,7 +8,7 @@ const envVariables = require('../config/environmentVariables');
 
 
 
-exports.userSignUp = (req, res, next) => {
+exports.userSignUp = async (req, res, next) => {
     const { email, name, password } = req.body;
     const errors = validationResult(req);
 
@@ -18,63 +18,66 @@ exports.userSignUp = (req, res, next) => {
         callErrorHandler.synchronous('Validation failed', 422, errorData);
     }
 
-    bcrypt
-        .hash(password, 12)
-        .then(hashedPassword => {
-            const user = new User({
-                email,
-                name,
-                password: hashedPassword
-            });
+    try {
+        const hashedPassword = await 
+            bcrypt
+            .hash(password, 12);
 
-            return user.save();
-        })
-        .then(user => {
-            res.status(201).json({
-                message: 'New user created',
-                user
-            });
-            console.log('New user created');
-        })
-        .catch(err => {
-            callErrorHandler.asynchronous(err, next);
-        })
+        const user = new User({
+            email,
+            name,
+            password: hashedPassword
+        });
+
+        await user.save();
+        
+        res.status(201).json({
+            message: 'New user created',
+            user
+        });
+
+        console.log('New user created');
+    } catch (err) {
+        callErrorHandler.asynchronous(err, next);
+    }
+    
 }
 
-exports.userLogin = (req, res, next) => {
+exports.userLogin = async (req, res, next) => {
     const { email, password } = req.body;
-    let retrievedUser;
 
-    User
-        .findOne({ email: email })
-        .then(user => {
-            if(!user) {
-                callErrorHandler.synchronous('No user found with that email.', 401);               
-            }
+    try {
 
-            retrievedUser = user;
+        const user = await 
+            User
+            .findOne({ email: email });
+        
+        if(!user) {
+            callErrorHandler.synchronous('No user found with that email.', 401);               
+        }
 
-            return bcrypt.compare(password, user.password);
-        })
-        .then(isEqual => {
-            if(!isEqual) {
-                callErrorHandler.synchronous('Invalid password!', 401);
-            }
+        const isEqual = await 
+            bcrypt
+            .compare(password, user.password);
+        
+        if(!isEqual) {
+            callErrorHandler.synchronous('Invalid password!', 401);
+        }
 
-            const token = jsonWebToken.sign({
-                email: retrievedUser.email,
-                userId: retrievedUser._id.toString()
-            }, envVariables.JWTSecret, {
-                expiresIn: '1h'
-            });
-
-            res.status(200).json({
-                token,
-                userId: retrievedUser._id.toString()
-            });
-            console.log('User has logged In');
-        })
-        .catch(err => {
-            callErrorHandler.asynchronous(err, next);
+        const token = jsonWebToken.sign({
+            email: user.email,
+            userId: user._id.toString()
+        }, envVariables.JWTSecret, {
+            expiresIn: '1h'
         });
+
+        res.status(200).json({
+            token,
+            userId: user._id.toString()
+        });
+
+        console.log('User has logged In');
+    } catch (err) {
+        callErrorHandler.asynchronous(err, next);
+    }
 }

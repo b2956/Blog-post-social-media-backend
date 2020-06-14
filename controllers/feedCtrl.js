@@ -5,38 +5,35 @@ const User = require('../models/user');
 const clearImage = require('../utils/clearImage');
 const callErrorHandler = require('../utils/callErrorHandler');
 
-exports.getFeed = (req, res, next) => {
-    const { page } = +req.query || 1;
-    const postsPerPage = 2;
-    let totalPosts;
-    Post.find()
-    .countDocuments()
-    .then(count => {
-        totalPosts = count;
+exports.getFeed = async (req, res, next) => {
+    const page  = +req.query.page || 1;
 
-        return Post
+    const postsPerPage = 2;
+
+    try {
+        const totalPosts = await Post.find().countDocuments();
+
+        const posts = await Post
             .find()
             .populate('creator')        
             .skip((page - 1) * postsPerPage)
-            .limit(postsPerPage)
-            .then(posts => {
-                if(!posts) {
-                    callErrorHandler.synchronous('Could not find posts.', 404);
-                }
+            .limit(postsPerPage);
 
-                res.status(200).json({
-                    posts,
-                    totalItems: totalPosts
-                });
-                
-            });
-    })
-    .catch(err => {
+        if(!posts) {
+            callErrorHandler.synchronous('Could not find posts.', 404);
+        }
+
+        res.status(200).json({
+            posts,
+            totalItems: totalPosts
+        });
+
+    } catch (err) { 
         callErrorHandler.asynchronous(err, next);
-    });
+    }
 }
 
-exports.createPost = (req, res, next) => {
+exports.createPost = async (req, res, next) => {
     const errors = validationResult(req);
 
     if(!errors.isEmpty()) {
@@ -52,74 +49,70 @@ exports.createPost = (req, res, next) => {
     const imageUrl = req.file.path;
     const { title, content } = req.body;
     const { userId } = req;
-    let creator;
 
-    const post = new Post({
-        title,
-        content,
-        imageUrl: imageUrl,
-        creator: userId
-    });
+    try {
+        const post = await new Post({
+            title,
+            content,
+            imageUrl: imageUrl,
+            creator: userId
+        }).save();
+    
+        const user = await User.findById(userId);
 
-    post
-        .save()
-        .then(result => {
-            return User.findById(userId); 
-        })
-        .then(user => {
-            if(!user) {
-                callErrorHandler.synchronous('No user found.', 401);
+        if(!user) {
+            callErrorHandler.synchronous('No user found.', 401);
+        }
+
+        user.posts = [
+            ...user.posts,
+            post
+        ]
+        
+        await user.save();
+           
+        console.log('New post created, user updated!');        
+        
+        res.status(201).json({
+            message: 'Post created sucessfully!',
+            post: post,
+            creator: {
+                _id: user._id,
+                name: user.name
             }
-
-            creator = user;
-
-            user.posts = [
-                ...user.posts,
-                post
-            ]
-
-            return user.save();
-        })
-        .then(result => {
-            console.log('New post created, user updated!');
-
-            return res.status(201).json({
-                message: 'Post created sucessfully!',
-                post: post,
-                creator: {
-                    _id: creator._id,
-                    name: creator.name
-                }
-            });
-            
-        })
-        .catch(err => {
-            callErrorHandler.asynchronous(err, next);
         });
+
+    } catch (err) {
+        callErrorHandler.asynchronous(err, next);
+    }
 }
 
-exports.getPost = (req, res, next) => {
+exports.getPost = async (req, res, next) => {
     const { postId } =  req.params;
 
-    Post
-        .findById(postId)
-        .populate('creator')
-        .then(post => {
-            if(!post) {
-                callErrorHandler.synchronous('Could not find post.', 404);
-            }
 
-            res.status(200).json({
-                message: 'Post fetched.',
-                post
-            });
-        })
-        .catch(err => {
-            callErrorHandler.asynchronous(err, next);
+    try {
+
+        const post = await  
+            Post
+            .findById(postId)
+            .populate('creator');
+
+        if(!post) {
+            callErrorHandler.synchronous('Could not find post.', 404);
+        }
+
+        res.status(200).json({
+            message: 'Post fetched.',
+            post
         });
+        
+    } catch (err) {
+        callErrorHandler.asynchronous(err, next);
+    }
 }
 
-exports.editPost = (req, res, next) => {
+exports.editPost = async (req, res, next) => {
     const errors = validationResult(req);
     
     if(!errors.isEmpty()) {
@@ -135,9 +128,12 @@ exports.editPost = (req, res, next) => {
         imageUrl = req.file.path;
     }
 
-    Post
-    .findById(postId)
-    .then(post => {
+    try {
+
+        const post = await
+            Post
+            .findById(postId);
+
         if(!post) {
             callErrorHandler.synchronous('Could not find post.', 404);
         }
@@ -154,27 +150,28 @@ exports.editPost = (req, res, next) => {
         post.title = title;
         post.content = content;
         
-        return post.save()
-    })
-    .then(result => {
+        await post.save();
+
         res.status(200).json({
             message: 'Post edited with succes!',
-            post: result
+            post
         });
+
         console.log('Post updated successfully!')
-    })
-    .catch(err => {
+    } catch (err) {
         callErrorHandler.asynchronous(err, next);
-    });
+    }
 }
 
-exports.deletePost = (req, res, next) => {
+exports.deletePost = async (req, res, next) => {
     const { postId } = req.params;
     const { userId } = req;
 
-    Post
-    .findById(postId)
-    .then(post => {
+    try {
+        const post = await 
+            Post
+            .findById(postId);
+
         if(!post) {
             callErrorHandler.synchronous('Could not find post.', 404);
         }
@@ -185,49 +182,46 @@ exports.deletePost = (req, res, next) => {
 
         clearImage(post.imageUrl);
 
-        return Post.findByIdAndRemove(postId);
-    })
-    .then(result => {
-        return User.findById(userId);
-    })
-    .then(user => {
+        await Post.findByIdAndRemove(postId);
+
+        const user = await User.findById(userId);
 
         user.posts.pull(postId);
-        return user.save();
-    })
-    .then(result => {
+
+        await user.save();
+
         res.status(200).json({
             message: 'Post deleted successfully!'
         });
+
         console.log('Post deleted successfully!');
-    })
-    .catch(err => {
+    } catch (err) {
         callErrorHandler.asynchronous(err, next);
-    });
+    }
 }
 
-exports.getUserStatus = (req, res, next) => {
+exports.getUserStatus = async (req, res, next) => {
     const { userId } = req;
 
-    User
-        .findById(userId)
-        .then(user => {
-            if(!user) {
-                callErrorHandler.synchronous('User could not be found in the database', 404);
-            }
+    try {
+        const user = await 
+            User
+            .findById(userId);
+        
+        if(!user) {
+            callErrorHandler.synchronous('User could not be found in the database', 404);
+        }
 
-            const status = user.status;
-
-            res.status(200).json({
-                status
-            });
-        })
-        .catch(err => {
-            callErrorHandler.asynchronous(err, next);
+        res.status(200).json({
+            status: user.status
         });
+
+    } catch (err) {
+        callErrorHandler.asynchronous(err, next);
+    }
 }
 
-exports.editStatus = (req, res, next) => {
+exports.editStatus = async (req, res, next) => {
     const { userId } = req;
     const { status } = req.body;
 
@@ -235,25 +229,25 @@ exports.editStatus = (req, res, next) => {
         callErrorHandler.synchronous('No new status was set', 401);
     }
 
-    User
-        .findById(userId)
-        .then(user => {
-            if(!user) {
-                callErrorHandler.synchronous('User could not be found in the database', 404);
-            }
+    try {
+        const user = await 
+            User
+            .findById(userId);
+        
+        if(!user) {
+            callErrorHandler.synchronous('User could not be found in the database', 404);
+        }
 
-            user.status = status;
+        user.status = status;
 
-            return user.save();
-        })
-        .then(result => {
-            res.status(200).json({
-                message: 'Status updated successfully',
-                status
-            });
-            console.log('User status updated succesfully');
-        })
-        .catch(err => {
-            callErrorHandler.asynchronous(err, next);
+        await user.save();
+
+        res.status(200).json({
+            message: 'Status updated successfully',
+            status
         });
+        console.log('User status updated succesfully');
+    } catch (err) {
+        callErrorHandler.asynchronous(err, next);
+    }        
 }

@@ -1,9 +1,12 @@
 const { validationResult }  = require('express-validator');
 
+const io = require('../config/socket');
 const Post = require('../models/post');
 const User = require('../models/user');
 const clearImage = require('../utils/clearImage');
 const callErrorHandler = require('../utils/callErrorHandler');
+const socket = require('../config/socket');
+
 
 exports.getFeed = async (req, res, next) => {
     const page  = +req.query.page || 1;
@@ -15,7 +18,8 @@ exports.getFeed = async (req, res, next) => {
 
         const posts = await Post
             .find()
-            .populate('creator')        
+            .populate('creator')
+            .sort({ createdAt: -1 })      
             .skip((page - 1) * postsPerPage)
             .limit(postsPerPage);
 
@@ -71,7 +75,17 @@ exports.createPost = async (req, res, next) => {
         
         await user.save();
            
-        console.log('New post created, user updated!');        
+        console.log('New post created, user updated!');
+        io.getIO().emit('posts', {
+            action: 'create',
+            post: {
+                ...post._doc,
+                creator: {
+                    _id: user._id,
+                    name: user.name
+                }
+            }
+        })
         
         res.status(201).json({
             message: 'Post created sucessfully!',
@@ -132,13 +146,14 @@ exports.editPost = async (req, res, next) => {
 
         const post = await
             Post
-            .findById(postId);
+            .findById(postId)
+            .populate('creator');
 
         if(!post) {
             callErrorHandler.synchronous('Could not find post.', 404);
         }
 
-        if(post.creator.toString() !== userId.toString()) {
+        if(post.creator._id.toString() !== userId.toString()) {
             callErrorHandler.synchronous(`User id doesn't match that of the post.`, 403);
         }
 
@@ -150,7 +165,12 @@ exports.editPost = async (req, res, next) => {
         post.title = title;
         post.content = content;
         
-        await post.save();
+        const updatedPost = await post.save();
+
+        io.getIO().emit('posts', {
+            action: 'update', 
+            post: updatedPost
+        });
 
         res.status(200).json({
             message: 'Post edited with succes!',
@@ -189,6 +209,11 @@ exports.deletePost = async (req, res, next) => {
         user.posts.pull(postId);
 
         await user.save();
+
+        socket.getIO().emit('posts', {
+            action: 'delete',
+            post: postId
+        });
 
         res.status(200).json({
             message: 'Post deleted successfully!'

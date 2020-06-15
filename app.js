@@ -8,6 +8,7 @@ const envVariables = require('./config/environmentVariables');
 
 const feedRoutes = require('./routes/feedRoutes');
 const authRoutes = require('./routes/authRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use((req, res, next) => {
 
 app.use('/feed', feedRoutes);
 app.use('/auth', authRoutes);
+app.use(chatRoutes);
 
 app.use((error, req, res, next) => {
     console.log(error);

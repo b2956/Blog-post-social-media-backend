@@ -30,7 +30,6 @@ exports.getUsers = async (req, res, next) => {
             users: responseUsers,
             totalItems: totalUsers
         });
-        console.log(responseUsers);
     } catch (err) {
         callErrorHandler.asynchronous(err, next);
     }

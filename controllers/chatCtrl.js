@@ -69,7 +69,10 @@ exports.getChat = async (req, res, next) => {
 
             await chat.save();
 
-            // update users with chats 
+            emiter.chats.push(chat._id);
+            await emiter.save();
+            await recipient.chats.push(chat._id);
+            await recipient.save();
 
             console.log('New chat created!');
         }

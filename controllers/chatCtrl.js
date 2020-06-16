@@ -2,6 +2,39 @@ const Chat = require('../models/chat');
 const User = require('../models/user');
 const callErrorHandler = require('../utils/callErrorHandler');
 
+exports.getUsers = async (req, res, next) => {
+    const page  = +req.query.page || 1;
+
+    const usersPerPage = 2;
+
+    try {
+        const totalUsers = await User.find().countDocuments();
+
+        const users = await User
+            .find()
+            .skip((page - 1) * usersPerPage)
+            .limit(usersPerPage);
+
+        if(!users) {
+            callErrorHandler.synchronous('No users found', 404)
+        }
+
+        const responseUsers = users.map(user => {
+            return {
+                name: user.name,
+                id: user._id,
+            }
+        });
+
+        res.status(200).json({
+            users: responseUsers,
+            totalItems: totalUsers
+        });
+        console.log(responseUsers);
+    } catch (err) {
+        callErrorHandler.asynchronous(err, next);
+    }
+}
 
 exports.getChat = async (req, res, next) => {
     const { userId } = req;

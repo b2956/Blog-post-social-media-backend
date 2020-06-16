@@ -5,8 +5,10 @@ const isAuth = require('../middleware/is-auth');
 
 const router = express.Router();
 
-router.get('/chat/:recipientUserId', isAuth, chatController.getChat);
+router.get('/get-users', isAuth, chatController.getUsers);
 
-router.post('/chat/send-message/:chatId', isAuth, chatController.sendMessage);
+router.get('/:recipientUserId', isAuth, chatController.getChat);
+
+router.post('/send-message/:chatId', isAuth, chatController.sendMessage);
 
 module.exports = router;

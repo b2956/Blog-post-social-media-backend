@@ -77,27 +77,91 @@ module.exports = {
         }
     },
 
-    getPosts: async function({ page }, req) {
+    getPosts: async function(args, req) {
         const itemsPerPage = 2;
+        const page = +req.query.page || 1;
         
-        // isAuth(req);
+        isAuth(req);
 
         const totalPosts = await Post
             .countDocuments();
 
-        const posts = await 
+        let posts = await 
             Post
                 .find()
-                .skip((+page - 1)*2)
-                .limit(itemsPerPage);
+                .populate({ path: 'creator', select: 'name' })
+                .skip((page - 1) * itemsPerPage)
+                .limit(itemsPerPage)
+                .sort({ createdAt: -1 });
 
         if(!posts) {
             callErrorHandler.synchronous('Could not find posts.', 404);
         }
 
+        posts = posts.map(post => {
+            return {
+                ...post._doc,
+                createdAt: post.createdAt.toISOString(),
+                updatedAt: post.updatedAt.toISOString()
+            }
+        });
+
         return {
-            posts: posts,
+            posts,
             totalPosts
         }
-    }
+    },
+
+    createPost: async function({ postInput }, req) {
+        const { title, content } = postInput;
+        // const imageUrl = req.file.path;
+        const imageUrl = 'Hello there';
+
+        isAuth(req);
+
+        const { userId } = req;
+
+        const user = await User.findById(userId);
+
+        if(!user) {
+            callErrorHandler.synchronous('No user was found', 404);
+        }
+
+        if(validator.isEmpty(title) || !validator.isLength(title, {min: 5})) {
+            callErrorHandler.synchronous('Invalid title, text must be at least 5 characters long', 422);
+        }
+
+        if(validator.isEmpty(content)  || !validator.isLength(content, {min: 5})) {
+            callErrorHandler.synchronous('Invalid content, text must be at least 5 characters long', 422);
+        }
+
+        if(!imageUrl) {
+            callErrorHandler.synchronous('Must insert a valid image', 422);
+        }
+
+        const post = await new Post({
+            title,
+            content,
+            imageUrl,
+            creator: user._id
+        }).save();
+
+        if(!post) {
+            callErrorHandler.synchronous('Could not create post', 500);
+        }
+
+        user.posts.push(post._id);
+
+        await user.save();
+
+        await post
+            .populate({path: 'creator', select: 'name'})
+            .execPopulate();
+
+        return {
+            ...post._doc,
+            createdAt: post.createdAt.toISOString(),
+            updatedAt: post.updatedAt.toISOString()
+        }
+    },
 }

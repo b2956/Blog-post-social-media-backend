@@ -46,25 +46,14 @@ module.exports = buildSchema(`
         totalPosts: Int!
     }
 
-    type NewPostData {
-        _id: ID!
-        title: String!
-        content: String!
-        imageUrl: String!
-        creator: User!
-        createdAt: String!
-        updatedAt: String
-    }
-
     type RootQuery {
         loginUser(loginInput: UserLoginInput) : AuthData!
-        getPosts(page: String!): GetPostsData!
+        getPosts: GetPostsData!
     }
 
     type RootMutation {
         createUser(userInput: UserInputData): User!
-
-        createpost(postInput: CreatePostInput): NewPostData!
+        createPost(postInput: CreatePostInput): Post!
     }
 
     schema {

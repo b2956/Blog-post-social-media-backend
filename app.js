@@ -3,12 +3,11 @@ const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
+const graphqlHttp = require('express-graphql');
 
 const envVariables = require('./config/environmentVariables');
-
-const feedRoutes = require('./routes/feedRoutes');
-const authRoutes = require('./routes/authRoutes');
-const chatRoutes = require('./routes/chatRoutes');
+const graphqlSchema = require('./graphql/schema');
+const graphqlResover = require('./graphql/resolver');
 
 const app = express();
 
@@ -41,12 +40,32 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if(req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
     next();
 });
 
-app.use('/feed', feedRoutes);
-app.use('/auth', authRoutes);
-app.use('/chat', chatRoutes);
+app.use(
+    '/graphql', 
+    graphqlHttp({
+        schema: graphqlSchema,
+        rootValue: graphqlResover,
+        graphiql: true,
+        customFormatErrorFn(err) {
+            if(!err.originalError) {
+                return err;
+            }
+
+            const error = {
+                message:  err.originalError.message,
+                status:  err.originalError.statusCode || 500
+            }
+
+            return error;
+        }
+    })
+);
 
 app.use((error, req, res, next) => {
     console.log(error);
@@ -67,12 +86,8 @@ mongoose
         useUnifiedTopology: true
     })
     .then(result => {
-        const server = app.listen(8080);
+        app.listen(8080);
         console.log('Server is connected');
-        const io = require('./config/socket').init(server);
-        io.on('connection', socket => {
-            console.log('Client connected');
-        });
     })
     .catch(err => {
         console.log(err);

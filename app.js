@@ -61,9 +61,11 @@ app.use((error, req, res, next) => {
 
 mongoose
     .connect(
-        envVariables.MongoDbUri, {       useNewUrlParser: true,
-        useUnifiedTopology: true
-    })
+        envVariables.MongoDbUri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        }
+    )
     .then(result => {
         app.listen(8080, console.log('Server is connected'));
     })

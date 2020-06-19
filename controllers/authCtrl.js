@@ -77,7 +77,8 @@ exports.userLogin = async (req, res, next) => {
         });
 
         console.log('User has logged In');
+        return;
     } catch (err) {
-        callErrorHandler.asynchronous(err, next);
+        return callErrorHandler.asynchronous(err, next);
     }
 }

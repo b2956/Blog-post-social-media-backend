@@ -3,6 +3,7 @@ exports.asynchronous = (err, next) => {
         err.statusCode = 500;
     }
     next(err);
+    return(err);
 }
 
 exports.synchronous = (message, statusCode, errorData = undefined) => {

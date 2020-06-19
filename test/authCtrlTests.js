@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const User = require('../models/user');
 const AuthController = require('../controllers/authCtrl');
 
-describe('Auth Controller - Login', function() {
+describe('Auth Controller - User Login', function() {
     it('should throw an error with code 500 if accessing the database fails', function(done) {
         sinon.stub(User, 'findOne');
         User.findOne.throws();

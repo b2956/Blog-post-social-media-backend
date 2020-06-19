@@ -83,7 +83,7 @@ exports.createPost = async (req, res, next) => {
         });
 
     } catch (err) {
-        callErrorHandler.asynchronous(err, next);
+        return callErrorHandler.asynchronous(err, next);
     }
 }
 

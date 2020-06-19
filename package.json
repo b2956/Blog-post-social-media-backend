@@ -2,10 +2,11 @@
   "name": "rest-api-introduction",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "mocha",
-    "start": "nodemon app.js"
+    "test": "mocha --timeout 10000",
+    "start": "nodemon app.js",
+    "test-debug": "mocha --debug-brk 'test/**/*.js' --timeout 10000"
   },
   "author": "",
   "license": "ISC",
